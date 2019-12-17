@@ -24,6 +24,7 @@ void histogram_paint(image *img);
 void histogram_save(image *img, char * path);
 void filter(image *img, int filter_size, int ** weights);
 void gauss_filter(image *img);
+void writeFile(image *img);
 
 void clear_memory(int ** matrix, int height){
 	for (int i = 0; i < height; i++)
@@ -250,6 +251,38 @@ image pgmToStruct(FILE *fp)
 	wielki.name[1] = d[1];
 	free(d);
 	return wielki;
+}
+
+void writeFile(image *img){
+    char name[100];
+    char *extension = ".pgm";
+
+    printf("Podaj nazwe pliku:");
+    scanf("%s",name);
+
+    char *namePGM = malloc((strlen(name) + strlen(extension) + 1)* sizeof(char));
+    namePGM[0] = '\0'; // zapewnia, że pamięć zmiennej jest pusta
+    strcat(namePGM,name);
+    strcat(namePGM,extension);
+
+    FILE *f = fopen(namePGM,"w");
+    if(f == NULL){
+        printf("writing error");
+    }
+    fprintf(f,"%s\n","P2");
+    fprintf(f,"%d %d\n",img->height,img->width);
+    fprintf(f,"%d\n",img->grayscale);
+    for(int i = 0; i < img->height; i++){
+        for(int j = 0; j< img->width; j++){
+            fprintf(f,"%d ",img->matrix[i][j]);
+        }
+        fprintf(f,"\n");
+    }
+    printf("Saved successfully!");
+    free(extension);
+    free(namePGM);
+    free(f);
+
 }
 
 
