@@ -12,6 +12,14 @@ typedef struct image{
 	int** matrix;
 } image;
 
+struct Node{
+	image *img;
+	// to jest nazwa dla konkretnego obrazka ktorego chcemy zapisać do tablicy
+	char *imgName;
+
+	struct Node *next;
+};
+
 void clear_memory(int ** matrix, int height);
 void show_image(image *img);
 void rotate90(image *img);
@@ -25,6 +33,121 @@ void histogram_save(image *img, char * path);
 void filter(image *img, int filter_size, int ** weights);
 void gauss_filter(image *img);
 void writeFile(image *img);
+void addImage(struct Node** head_ref, image *newImage, size_t dataSize);
+void deleteImage(struct Node **headRef);
+void printList(struct Node* node);
+image *selectCurrImage(struct Node **headRef);
+
+// tak ogólnie to tu dodajesz te obrazki na przód zawsze i ogólnie jak chcesz edytować ten pierwszy obrazek z talicy to się coś psuje i go później krzywo wypisuje więc bierz te wcześniejsze do edycji na testach xDDDDD
+void addImage(struct Node** head_ref, image *newImage, size_t dataSize){
+
+	char *imageName =  (char*)malloc(BUFF_SIZE*(sizeof(char)));
+	printf("Provide name for this image: ");
+	scanf("%s", imageName);
+
+	//Allocate memory for node
+	struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+
+	newNode->img = malloc(dataSize);
+	newNode->next = (*head_ref);
+	newNode->imgName = imageName;
+	newNode->img->height = newImage->height;
+	newNode->img->width = newImage->width;
+	newNode->img->grayscale = newImage->grayscale;
+	newNode->img->name[0] = newImage->name[0];
+	newNode->img->name[1] = newImage->name[1];
+
+	newNode->img->matrix = malloc(newNode->img->height * sizeof(int*));
+	for (int i = 0; i < newNode->img->height; i++)
+		newNode->img->matrix[i] = malloc(newNode->img->width * sizeof(int));
+
+	for(int i = 0; i < newImage->height; i++){
+		for(int j = 0; j < newImage->width; j++){
+			newNode->img->matrix[i][j] = newImage->matrix[i][j];
+		}
+	}
+	(*head_ref) = newNode;
+}
+
+// delete image from array by key = name of image
+void deleteImage(struct Node **headRef){
+
+	char *imageName =  (char*)malloc(BUFF_SIZE*(sizeof(char)));
+	printf("Provide name of image to delete: ");
+	scanf("%s", imageName);
+	
+	struct Node* temp = *headRef, *prev;
+
+	// if head node itself holds the key to be deleted
+	if(temp != NULL && strcmp(temp->imgName,imageName) == 0){
+		*headRef = temp->next; // change head for the next element
+		clear_memory(temp->img->matrix,temp->img->height);
+		free(temp); // free old head
+		return;
+	}
+
+	//search for image which cointains name = key
+	while( temp != NULL && strcmp(temp->imgName,imageName) != 0){
+		prev = temp;
+		temp = temp->next;
+	}
+
+	// If key was not present in linked list
+	if(temp == NULL){
+		printf("Image with that name could not be found!");
+		return;
+	}
+	printf("Image deleted!");
+	// Unlink the node from linked list
+	prev->next = temp->next;
+	clear_memory(temp->img->matrix,temp->img->height);
+	free(temp);
+	return;
+
+}
+
+void printList(struct Node* node){
+	while(node != NULL){
+		int i = 0, j = 0;
+		printf("%s\n", node->img->name);
+		printf("%d %d\n", node->img->height, node->img->width);
+		printf("%d\n", node->img->grayscale);
+		for (i = 0; i < node->img->height; i++){
+			for (j = 0; j < node->img->width; j++){
+				printf("%d ", node->img->matrix[i][j]);
+			}
+		printf("\n");
+		}
+		printf("\n");
+
+		node = node->next;
+	}
+}
+
+image *selectCurrImage(struct Node **headRef){
+
+	char *imageName = (char*)malloc(BUFF_SIZE*(sizeof(char)));
+	printf("Provide name of  image to select: ");
+	scanf("%s", imageName);
+
+	struct Node* temp = *headRef, *prev;
+
+	//search for image which cointains name = key
+	while( temp != NULL && strcmp(temp->imgName,imageName) != 0){
+		prev = temp;
+		temp = temp->next;
+	}
+
+	// If key was not present in linked list
+	if(temp == NULL){
+		printf("Image with that name could not be found!\n");
+		return NULL;
+	}
+	printf("Image selected!\n");
+
+	return temp->img;
+	
+}
 
 void clear_memory(int ** matrix, int height){
 	for (int i = 0; i < height; i++)
@@ -269,7 +392,7 @@ void writeFile(image *img){
     if(f == NULL){
         printf("writing error");
     }
-    fprintf(f,"%s\n","P2");
+    fprintf(f,"%s\n",img->name);
     fprintf(f,"%d %d\n",img->height,img->width);
     fprintf(f,"%d\n",img->grayscale);
     for(int i = 0; i < img->height; i++){
@@ -289,11 +412,25 @@ void writeFile(image *img){
 
 int main()
 {
+	struct Node *start = NULL;
 	FILE *read = readFile();
-	image img = pgmToStruct(read);
-	printf("wysokosc: %d\n szerokosc: %d\nskala szarosci: %d\n P?: %c%c\n", img.height, img.width, img.grayscale, img.name[0],img.name[1]);
-	show_image(&img);
-	histogram_equalize(&img);
-	show_image(&img);
+	image currImage = pgmToStruct(read);
+	printf("wysokosc: %d\n szerokosc: %d\nskala szarosci: %d\n P?: %c%c\n", currImage.height, currImage.width, currImage.grayscale, currImage.name[0],currImage.name[1]);
+	//show_image(&currImage);
+	//histogram_equalize(&currImage);
+	//show_image(&currImage);
+	printList(start);
+	addImage(&start, &currImage, sizeof(image));
+	rotate90(&currImage);
+	addImage(&start, &currImage, sizeof(image));
+	printList(start);
+	image *tempImg = selectCurrImage(&start);
+	if(tempImg != NULL){
+		currImage = *tempImg;
+	}
+	rotate90(&currImage);
+	addImage(&start, &currImage, sizeof(image));	
+	deleteImage(&start);
+	printList(start);
 	return 0;
 }
