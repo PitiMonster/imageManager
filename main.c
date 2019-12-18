@@ -37,6 +37,7 @@ void addImage(struct Node** head_ref, image *newImage, size_t dataSize);
 void deleteImage(struct Node **headRef);
 void printList(struct Node* node);
 image *selectCurrImage(struct Node **headRef);
+image *copyImage(image *oldImg);
 
 // tak ogólnie to tu dodajesz te obrazki na przód zawsze i ogólnie jak chcesz edytować ten pierwszy obrazek z talicy to się coś psuje i go później krzywo wypisuje więc bierz te wcześniejsze do edycji na testach xDDDDD
 void addImage(struct Node** head_ref, image *newImage, size_t dataSize){
@@ -94,10 +95,10 @@ void deleteImage(struct Node **headRef){
 
 	// If key was not present in linked list
 	if(temp == NULL){
-		printf("Image with that name could not be found!");
+		printf("Image with that name could not be found!\n");
 		return;
 	}
-	printf("Image deleted!");
+	printf("Image deleted!\n");
 	// Unlink the node from linked list
 	prev->next = temp->next;
 	clear_memory(temp->img->matrix,temp->img->height);
@@ -109,7 +110,9 @@ void deleteImage(struct Node **headRef){
 void printList(struct Node* node){
 	while(node != NULL){
 		int i = 0, j = 0;
-		printf("%s\n", node->img->name);
+		printf("%p\n", node->img);
+		printf("%s\n", node->imgName);
+		printf("%c%c\n", node->img->name[0],node->img->name[1]);
 		printf("%d %d\n", node->img->height, node->img->width);
 		printf("%d\n", node->img->grayscale);
 		for (i = 0; i < node->img->height; i++){
@@ -144,9 +147,31 @@ image *selectCurrImage(struct Node **headRef){
 		return NULL;
 	}
 	printf("Image selected!\n");
-
-	return temp->img;
+	printList(*headRef);
+	return copyImage(temp->img);
 	
+}
+
+image *copyImage(image *oldImg){
+	 image *newImg = malloc(sizeof(image));
+
+	newImg->height = oldImg->height;
+	newImg->width = oldImg->width;
+	newImg->grayscale = oldImg->grayscale;
+	newImg->name[0] = oldImg->name[0];
+	newImg->name[1] = oldImg->name[1];
+
+	newImg->matrix = malloc(newImg->height * sizeof(int*));
+	for (int i = 0; i < newImg->height; i++)
+		newImg->matrix[i] = malloc(newImg->width * sizeof(int));
+
+	for(int i = 0; i < oldImg->height; i++){
+		for(int j = 0; j < oldImg->width; j++){
+			newImg->matrix[i][j] =oldImg->matrix[i][j];
+		}
+	}
+
+	return newImg;
 }
 
 void clear_memory(int ** matrix, int height){
@@ -354,24 +379,24 @@ FILE* readFile() {
 	return fp;
 }
 
-image pgmToStruct(FILE *fp)
+image *pgmToStruct(FILE *fp)
 {
-	image wielki;
+	image *wielki= malloc(sizeof(image));
 	int a, b, c;
 	char *d = malloc(BUFF_SIZE*sizeof(char));
-	fscanf(fp, "%s %d %d %d",d,&wielki.height, &wielki.width, &wielki.grayscale);
-	wielki.matrix = malloc(wielki.height * sizeof(int*));
-	for (int i = 0; i < wielki.height; i++)
-		wielki.matrix[i] = malloc(wielki.width * sizeof(int));
-	for (int i = 0; i < wielki.height; i++)
+	fscanf(fp, "%s %d %d %d",d,&wielki->height, &wielki->width, &wielki->grayscale);
+	wielki->matrix = malloc(wielki->height * sizeof(int*));
+	for (int i = 0; i < wielki->height; i++)
+		wielki->matrix[i] = malloc(wielki->width * sizeof(int));
+	for (int i = 0; i < wielki->height; i++)
 	{
-		for (int j = 0; j < wielki.width; j++) {
-			fscanf(fp, "%d", &wielki.matrix[i][j]);
+		for (int j = 0; j < wielki->width; j++) {
+			fscanf(fp, "%d", &wielki->matrix[i][j]);
 		}
 	}
 	
-	wielki.name[0] = d[0];
-	wielki.name[1] = d[1];
+	wielki->name[0] = d[0];
+	wielki->name[1] = d[1];
 	free(d);
 	return wielki;
 }
@@ -414,23 +439,24 @@ int main()
 {
 	struct Node *start = NULL;
 	FILE *read = readFile();
-	image currImage = pgmToStruct(read);
-	printf("wysokosc: %d\n szerokosc: %d\nskala szarosci: %d\n P?: %c%c\n", currImage.height, currImage.width, currImage.grayscale, currImage.name[0],currImage.name[1]);
+	image *currImage = pgmToStruct(read);
+	printf("wysokosc: %d\n szerokosc: %d\nskala szarosci: %d\n P?: %c%c\n", currImage->height, currImage->width, currImage->grayscale, currImage->name[0],currImage->name[1]);
 	//show_image(&currImage);
 	//histogram_equalize(&currImage);
 	//show_image(&currImage);
 	printList(start);
-	addImage(&start, &currImage, sizeof(image));
-	rotate90(&currImage);
-	addImage(&start, &currImage, sizeof(image));
+	addImage(&start, currImage, sizeof(image));
+	rotate90(currImage);
+	addImage(&start, currImage, sizeof(image));
 	printList(start);
 	image *tempImg = selectCurrImage(&start);
 	if(tempImg != NULL){
-		currImage = *tempImg;
+		currImage = tempImg;
 	}
-	rotate90(&currImage);
-	addImage(&start, &currImage, sizeof(image));	
-	deleteImage(&start);
+	rotate90(currImage);
+	printList(start);
+	addImage(&start, currImage, sizeof(image));	
+	//deleteImage(&start);
 	printList(start);
 	return 0;
 }
